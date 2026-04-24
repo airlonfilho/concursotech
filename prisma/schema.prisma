@@ -1,0 +1,158 @@
+// This is your Prisma schema file,
+// learn more about it in the docs: https://pris.ly/d/prisma-schema
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+}
+
+model Usuario {
+  id             String         @id @default(uuid())
+  nome           String
+  email          String         @unique
+  senha_hash     String
+  avatar         String?
+  xp             Int            @default(0)
+  nivel          Int            @default(1)
+  streak         Int            @default(0)
+  created_at     DateTime       @default(now())
+
+  concurso       Concurso?
+  sessoes        Sessao[]
+  flashcards     Flashcard[]
+  nivelamentos   Nivelamento[]
+  plano_semanal  PlanoSemanal[]
+  badges         UsuarioBadge[]
+  edital         ConteudoEdital?
+  progresso_topicos ProgressoTopico[]
+}
+
+model ConteudoEdital {
+  id             String         @id @default(uuid())
+  usuario_id     String         @unique
+  usuario        Usuario        @relation(fields: [usuario_id], references: [id])
+  materias_json  Json           // { "Português": ["Crase", "Interpretação"], ... }
+  raw_text       String?
+  atualizado_em  DateTime       @default(now())
+}
+
+model ProgressoTopico {
+  id             String         @id @default(uuid())
+  usuario_id     String
+  usuario        Usuario        @relation(fields: [usuario_id], references: [id])
+  materia        String
+  topico         String
+  concluido      Boolean        @default(true)
+  data_conclusao DateTime       @default(now())
+
+  @@unique([usuario_id, materia, topico])
+}
+
+
+model Concurso {
+  id             String         @id @default(uuid())
+  usuario_id     String         @unique
+  usuario        Usuario        @relation(fields: [usuario_id], references: [id])
+  nome           String         @default("Geral") // ex: Serpro, TCU
+  cargo          String         // ex: Analista, Técnico
+  banca          String
+  modalidade     String
+  data_prova     DateTime
+  horas_dia      Int
+  dias_semana    String[]       // ex: ["SEG", "TER", "QUA"]
+}
+
+model Nivelamento {
+  id             String         @id @default(uuid())
+  usuario_id     String
+  usuario        Usuario        @relation(fields: [usuario_id], references: [id])
+  materia        String
+  nivel          String         // ex: INICIANTE, INTERMEDIARIO, AVANCADO
+  acertos        Int
+  total          Int
+  data           DateTime       @default(now())
+}
+
+model Sessao {
+  id             String         @id @default(uuid())
+  usuario_id     String
+  usuario        Usuario        @relation(fields: [usuario_id], references: [id])
+  tipo           String         // ex: QUESTOES, FLASHCARDS, AULA
+  materia        String?        // ex: Português, Redes
+  inicio         DateTime       @default(now())
+
+  fim            DateTime?
+  xp_ganho       Int            @default(0)
+  acertos        Int            @default(0)
+  erros          Int            @default(0)
+
+  respostas      Resposta[]
+}
+
+model Resposta {
+  id               String       @id @default(uuid())
+  sessao_id        String
+  sessao           Sessao       @relation(fields: [sessao_id], references: [id])
+  questao_id       String       // id da questao na API externa (qapi)
+  alternativa      String
+  correta          Boolean
+  tempo_segundos   Int
+}
+
+model Flashcard {
+  id               String       @id @default(uuid())
+  usuario_id       String
+  usuario          Usuario      @relation(fields: [usuario_id], references: [id])
+  frente           String
+  verso            String
+  materia          String
+  intervalo_sm2    Int          @default(1)
+  proxima_revisao  DateTime     @default(now())
+}
+
+model PlanoSemanal {
+  id               String       @id @default(uuid())
+  usuario_id       String
+  usuario          Usuario      @relation(fields: [usuario_id], references: [id])
+  semana_inicio    DateTime
+  atividades_json  Json
+  meta_horas       Int
+  horas_concluidas Int          @default(0)
+}
+
+model Badge {
+  id               String       @id @default(uuid())
+  slug             String       @unique
+  nome             String
+  descricao        String
+  icone            String
+  xp_requerido     Int          @default(0)
+  condicao_json    Json?
+
+  usuarios         UsuarioBadge[]
+}
+
+model UsuarioBadge {
+  id               String       @id @default(uuid())
+  usuario_id       String
+  usuario          Usuario      @relation(fields: [usuario_id], references: [id])
+  badge_id         String
+  badge            Badge        @relation(fields: [badge_id], references: [id])
+  conquistada_em   DateTime     @default(now())
+
+  @@unique([usuario_id, badge_id])
+}
+
+model VideoCache {
+  id               String       @id @default(uuid())
+  youtube_id       String       @unique
+  topico           String
+  titulo           String
+  thumbnail        String
+  duracao          String
+  ai_notes_json    Json?
+  criado_em        DateTime     @default(now())
+}
