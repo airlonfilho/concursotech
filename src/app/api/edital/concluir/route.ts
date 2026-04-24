@@ -109,13 +109,15 @@ export async function GET() {
         });
 
         // Calcula estatísticas por matéria
-        const estatisticasPorMateria = progressos.reduce((acc, p) => {
+        type MateriaStats = Record<string, { total: number; concluidos: number }>;
+
+        const estatisticasPorMateria = progressos.reduce((acc: MateriaStats, p: (typeof progressos)[number]) => {
             if (!acc[p.materia]) {
                 acc[p.materia] = { total: 0, concluidos: 0 };
             }
             acc[p.materia].concluidos += 1;
             return acc;
-        }, {} as Record<string, { total: number; concluidos: number }>);
+        }, {} as MateriaStats);
 
         return NextResponse.json({
             progressos,
